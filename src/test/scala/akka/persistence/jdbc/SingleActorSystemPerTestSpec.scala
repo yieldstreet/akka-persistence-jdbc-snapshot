@@ -34,8 +34,8 @@ abstract class SingleActorSystemPerTestSpec(val config: Config) extends SimpleSp
       case (conf, (path, configValue)) => conf.withValue(path, configValue)
     })
 
-  implicit val pc: PatienceConfig = PatienceConfig(timeout = 1.minute)
-  implicit val timeout: Timeout = Timeout(1.minute)
+  implicit val pc: PatienceConfig = PatienceConfig(timeout = 5.minute)
+  implicit val timeout: Timeout = Timeout(5.minute)
 
   val cfg = config.getConfig("jdbc-journal")
   val journalConfig = new JournalConfig(cfg)

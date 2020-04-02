@@ -66,7 +66,7 @@ abstract class JournalSequenceActorTest(configFile: String, isOracle: Boolean)
 
           val startTime = System.currentTimeMillis()
           withJournalSequenceActor(db, maxTries = 100) { actor =>
-            val patienceConfig = PatienceConfig(10.seconds)
+            val patienceConfig = PatienceConfig(50.seconds)
             eventually {
               val currentMax = actor.ask(GetMaxOrderingId).mapTo[MaxOrderingId].futureValue.maxOrdering
               currentMax shouldBe elements

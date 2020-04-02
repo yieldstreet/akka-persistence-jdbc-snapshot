@@ -54,7 +54,7 @@ class ReadJournalQueries(val profile: JdbcProfile, val readJournalConfig: ReadJo
 
   private def _eventsByTag(tag: Rep[String], offset: ConstColumn[Long], maxOffset: ConstColumn[Long], max: ConstColumn[Long]) = {
     baseTableQuery()
-      .filter(_.tags like tag)
+      .filter(_.tags === tag)
       .sortBy(_.ordering.asc)
       .filter(row => row.ordering > offset && row.ordering <= maxOffset)
       .take(max)

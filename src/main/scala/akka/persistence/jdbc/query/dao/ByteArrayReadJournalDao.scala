@@ -53,11 +53,8 @@ trait BaseByteArrayReadJournalDao extends ReadJournalDao {
     maxOffset: Long,
     max: Long): Source[Try[(PersistentRepr, Set[String], Long)], NotUsed] = {
 
-    val publisher = db.stream(queries.eventsByTag(s"%$tag%", offset, maxOffset, max).result)
-    // applies workaround for https://github.com/akka/akka-persistence-jdbc/issues/168
     Source
-      .fromPublisher(publisher)
-      .via(perfectlyMatchTag(tag, readJournalConfig.pluginConfig.tagSeparator))
+      .fromPublisher(db.stream(queries.eventsByTag(tag, offset, maxOffset, max).result))
       .via(serializer.deserializeFlow)
   }
 
@@ -116,7 +113,6 @@ trait OracleReadJournalDao extends ReadJournalDao {
   abstract override def eventsByTag(tag: String, offset: Long, maxOffset: Long, max: Long): Source[Try[(PersistentRepr, Set[String], Long)], NotUsed] = {
     if (isOracleDriver(profile)) {
       val theOffset = Math.max(0, offset)
-      val theTag = s"%$tag%"
 
       val selectStatement =
         if (readJournalConfig.includeDeleted)
@@ -124,7 +120,7 @@ trait OracleReadJournalDao extends ReadJournalDao {
             SELECT "#$ordering", "#$deleted", "#$persistenceId", "#$sequenceNumber", "#$message", "#$tags"
             FROM (
               SELECT * FROM #$theTableName
-              WHERE "#$tags" LIKE $theTag
+              WHERE "#$tags" = $tag
               AND "#$ordering" > $theOffset
               AND "#$ordering" <= $maxOffset
               ORDER BY "#$ordering"
@@ -135,7 +131,7 @@ trait OracleReadJournalDao extends ReadJournalDao {
             SELECT "#$ordering", "#$deleted", "#$persistenceId", "#$sequenceNumber", "#$message", "#$tags"
             FROM (
               SELECT * FROM #$theTableName
-              WHERE "#$tags" LIKE $theTag
+              WHERE "#$tags" = $tag
               AND "#$ordering" > $theOffset
               AND "#$ordering" <= $maxOffset
               AND "#$deleted" = 'false'
@@ -143,10 +139,8 @@ trait OracleReadJournalDao extends ReadJournalDao {
             )
             WHERE rownum <= $max""".as[JournalRow]
 
-      // applies workaround for https://github.com/akka/akka-persistence-jdbc/issues/168
       Source
         .fromPublisher(db.stream(selectStatement))
-        .via(perfectlyMatchTag(tag, readJournalConfig.pluginConfig.tagSeparator))
         .via(serializer.deserializeFlow)
 
     } else {

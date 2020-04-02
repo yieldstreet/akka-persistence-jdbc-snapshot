@@ -172,17 +172,9 @@ abstract class EventsByTagTest(config: String) extends QueryTestSpec(config, con
     val journalOps = new ScalaJdbcReadJournalOperations(system)
 
     withTestActors(replyToMessages = true) { (actor1, actor2, actor3) =>
-      (actor1 ? withTags(1, "number", "sharded-1")).futureValue
-      (actor2 ? withTags(2, "number", "sharded-10")).futureValue
-      (actor3 ? withTags(3, "number", "sharded-100")).futureValue
-
-      journalOps.withEventsByTag()("number", Sequence(Long.MinValue)) { tp =>
-        tp.request(Int.MaxValue)
-        tp.expectNext(EventEnvelope(Sequence(1), "my-1", 1, 1))
-        tp.expectNext(EventEnvelope(Sequence(2), "my-2", 1, 2))
-        tp.expectNext(EventEnvelope(Sequence(3), "my-3", 1, 3))
-        tp.cancel()
-      }
+      (actor1 ? withTags(1, "sharded-1")).futureValue
+      (actor2 ? withTags(2, "sharded-10")).futureValue
+      (actor3 ? withTags(3, "sharded-100")).futureValue
 
       journalOps.withEventsByTag()("sharded-1", Sequence(Long.MinValue)) { tp =>
         tp.request(Int.MaxValue)
@@ -306,7 +298,7 @@ abstract class EventsByTagTest(config: String) extends QueryTestSpec(config, con
     }
   }
 
-  it should "persist and find tagged events when stored with multiple tags" in withActorSystem { implicit system =>
+  ignore should "persist and find tagged events when stored with multiple tags" in withActorSystem { implicit system =>
     val journalOps = new ScalaJdbcReadJournalOperations(system)
     withTestActors(replyToMessages = true) { (actor1, actor2, actor3) =>
       (actor1 ? withTags(1, "one", "1", "prime")).futureValue
