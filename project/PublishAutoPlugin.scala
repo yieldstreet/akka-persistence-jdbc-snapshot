@@ -12,7 +12,8 @@ object PublishAutoPlugin extends AutoPlugin {
 
   override val projectSettings = Seq(
     publishMavenStyle := true,
-    publishToRepository(),
+    publishToSetting(),
+    credentialsSetting(),
     pomExtraSetting(),
     homepageSetting()
   )
@@ -38,8 +39,11 @@ object PublishAutoPlugin extends AutoPlugin {
   def homepageSetting() =
     homepage := Some(url(s"https://github.com/yieldstreet/akka-persistence-jdbc"))
 
-  def publishToRepository() = publishTo := {
+  def publishToSetting() = publishTo := {
     val suffix = if (isSnapshot.value) "snapshots" else "releases"
     Some("Yieldstreet" at s"https://nexus.ops.yieldstreet.net/repository/maven-$suffix/")
   }
+
+  def credentialsSetting() =
+    credentials += Credentials(Path.userHome / ".sbt" / ".credentials")
 }
