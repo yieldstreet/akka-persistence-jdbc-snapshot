@@ -41,7 +41,7 @@ object PublishAutoPlugin extends AutoPlugin {
 
   def publishToSetting() = publishTo := {
     val suffix = if (isSnapshot.value) "snapshots" else "releases"
-    Some("Yieldstreet" at s"https://nexus.ops.yieldstreet.net/repository/maven-$suffix/")
+    Some("Yieldstreet" at s"https://nexus.ops.yieldstreet.io/repository/maven-$suffix/")
   }
 
   def credentialsSetting() =

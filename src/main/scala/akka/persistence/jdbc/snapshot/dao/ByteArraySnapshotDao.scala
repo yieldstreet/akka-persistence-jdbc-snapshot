@@ -58,7 +58,12 @@ class ByteArraySnapshotDao(db: JdbcBackend#Database, profile: JdbcProfile, snaps
 
   override def save(snapshotMetadata: SnapshotMetadata, snapshot: Any): Future[Unit] = {
     val eventualSnapshotRow = Future.fromTry(serializer.serialize(snapshotMetadata, snapshot))
-    eventualSnapshotRow.map(queries.insertOrUpdate).flatMap(db.run).map(_ => ())
+    eventualSnapshotRow.map(s => {
+      if (!s.persistenceId.contains("/sharding")) {
+        deleteUpToMaxSequenceNr(s.persistenceId, s.sequenceNumber - 201);
+      }
+      queries.insertOrUpdate(s);
+    }).flatMap(db.run).map(_ => ())
   }
 
   override def delete(persistenceId: String, sequenceNr: Long): Future[Unit] = for {
