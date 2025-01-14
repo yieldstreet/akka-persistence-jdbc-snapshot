@@ -1,0 +1,7 @@
+## Docs: https://github.com/yieldstreet/argo-workflows/blob/master/ys-service-ci/workflows/backend/v2/README.md#format-of-argo-ciyaml
+
+javaVersion: 11
+
+libraries:
+  - directory: /
+    libraryName: akka-persistence-jdbc-snapshot
