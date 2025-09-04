@@ -6,7 +6,7 @@ on:
 
 jobs:
   run-integration:
-    runs-on: self-hosted
+    runs-on: arc-runner-sets
     steps:
       - uses: yieldstreet/defect-dojo-connector@v1.0.0
         with:
