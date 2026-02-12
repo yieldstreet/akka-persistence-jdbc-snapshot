@@ -7,7 +7,9 @@ on:
 
 jobs:
   run-integration:
-    runs-on: self-hosted
+    runs-on:
+      - runs-on=${{ github.run_id }}
+      - runner=32cpu-linux-arm64
     steps:
       - uses: yieldstreet/defect-dojo-connector@v1.0.0
         with:
