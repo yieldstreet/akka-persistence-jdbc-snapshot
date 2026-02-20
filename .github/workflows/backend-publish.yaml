@@ -12,73 +12,22 @@ on:
         required: true
         type: string
       branch_name:
-        description: "Branch name to checkout and use for releases (default: master)"
+        description: "Branch name to checkout (default: master)"
         required: false
         type: string
         default: master
+      path:
+        description: "Path in the repo where publish commands are run (default: root)"
+        required: false
+        type: string
+        default: "."
 
 jobs:
   publish:
-    name: Backend Publish
-    runs-on: ubuntu-latest
-    env:
-      BACKEND_BUILD_SYSTEM: ${{ github.event.repository.custom_properties.backend-build-system }}
-      JAVA_VERSION: ${{ github.event.repository.custom_properties.java-version }}
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ inputs.branch_name || 'master' }}
-
-      - name: Setup JDK
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: ${{ env.JAVA_VERSION }}
-
-      - name: Setup sbt launcher
-        if: ${{ env.BACKEND_BUILD_SYSTEM == 'sbt' }}
-        uses: sbt/setup-sbt@v1
-
-      - name: Make Gradle wrapper executable
-        if: ${{ env.BACKEND_BUILD_SYSTEM == 'gradle' }}
-        run: chmod +x ./gradlew
-
-      - name: Make Maven wrapper executable
-        if: ${{ env.BACKEND_BUILD_SYSTEM == 'maven' }}
-        run: chmod +x ./mvnw
-
-      - name: Publish SBT artifacts
-        if: ${{ env.BACKEND_BUILD_SYSTEM == 'sbt' && inputs.library_name != '' }}
-        run: |
-          libraryName="${{ inputs.library_name }}"
-          version="${{ inputs.library_version }}"
-
-          echo "Publishing $libraryName with version $version"
-
-          export LIBRARY_VERSION="$version"
-          sbt --no-colors --batch "+${libraryName}/publish"
-
-      - name: Publish Gradle artifacts
-        if: ${{ env.BACKEND_BUILD_SYSTEM == 'gradle' && inputs.library_name != '' }}
-        run: |
-          libraryName="${{ inputs.library_name }}"
-          version="${{ inputs.library_version }}"
-
-          echo "Publishing $libraryName with version $version"
-
-          export LIBRARY_VERSION="$version"
-          ./gradlew "${libraryName}:publish"
-
-      - name: Publish Maven artifacts
-        if: ${{ env.BACKEND_BUILD_SYSTEM == 'maven' && inputs.library_name != '' }}
-        run: |
-          version="${{ inputs.library_version }}"
-          echo "Publishing with version $version"
-          export LIBRARY_VERSION="$version"
-          
-          # Ensure Maven wrapper is executable
-          chmod +x ./mvnw
-          ./mvnw versions:set -DnewVersion="$version" -DgenerateBackupPoms=false
-          ./mvnw deploy -Dmaven.test.skip=true
+    uses: yieldstreet/github-workflows/.github/workflows/backend-publish.yaml@master
+    with:
+      LIBRARY_NAME: ${{ inputs.library_name }}
+      LIBRARY_VERSION: ${{ inputs.library_version }}
+      BRANCH_NAME: ${{ inputs.branch_name }}
+      PATH: ${{ inputs.path }}
+    secrets: inherit
