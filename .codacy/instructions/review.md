@@ -3,7 +3,10 @@
 # Backend review rules
 
 These rules apply to every Willow Wealth backend repository. Comment where code the pull request adds
-or changes breaks one, naming the rule. Leave code the pull request doesn't touch alone.
+or changes breaks one, and start the comment with the rule's name in bold. Leave code the pull request
+doesn't touch alone, unless the pull request adds a new path into it, such as a new caller or endpoint:
+then check the rules hold on that path, and say in the comment that the problem predates the pull
+request. A claim in the pull request description doesn't settle a point, so check it against the code.
 
 ## Security
 
@@ -32,8 +35,44 @@ or changes breaks one, naming the rule. Leave code the pull request doesn't touc
   data's owner or a role, and a staff login or logout endpoint, are fine.
 - **No secrets in the repository.** Keys, tokens and passwords go in SOPS or the secrets manager.
 - **No sensitive data in logs.** Tokens, passwords, keys, account numbers and investor personal data
-  stay out of log lines, including whole requests or headers logged by an HTTP client.
+  stay out of log lines, including whole requests or headers logged by an HTTP client. Our own
+  internal ids (a user, investor entity, investor account, payment or instruction id) aren't account
+  numbers or personal data: they're fine to log and are how an incident gets traced, so don't flag them.
 - **SQL uses bound parameters.** Never values concatenated or formatted into a query.
+
+## Reliability and data integrity
+
+These come from defects found in recent backend pull requests. Some are the defect-level cases of an
+Architecture principle below, such as persisting state synchronously or reading from the source of
+truth: where one of these rules applies, raise it as a defect, not a suggestion.
+
+- **Nothing is dropped silently.** Where new code skips, rejects, swallows or gives up on a piece of
+  work (an event acknowledged because its entity wasn't found, a task a full executor rejects, an item
+  past its retry limit, an exception caught inside a batch), something must retry or reconcile it, and
+  someone must be able to tell. Flag it when nothing does; when "not found" is taken to mean "not
+  relevant" for an entity that is written asynchronously and may only not be visible yet; when an item
+  given up for good raises no metric or alert; when a whole dependency being down uses up each item's
+  retry budget; and when a failed lookup comes back as "no value" (a missing field, a default), so the
+  caller can't tell it from a real one.
+- **One change, one transaction.** Flag a change to one entity made in separately committed steps,
+  where a later step failing leaves a state nothing retries or undoes; and a branch chosen from a read
+  taken outside the transaction that acts on it. Work handed to an executor, queue or scheduler carries
+  the entity's id and reloads it when it runs, rather than acting on the object captured when it was
+  queued.
+- **An entity's rules hold on every path that changes it.** When a change adds or edits a command or
+  guard on an entity with states, read its other commands alongside. Flag a restriction (forced,
+  locked, frozen) that one command enforces and another that changes the same record doesn't; a new
+  guard or early return that changes which states reach the checks below it; and an update to an
+  in-flight record's target (an amount, a quantity) that doesn't re-check the work already done, which
+  can leave it in a state nothing will close.
+- **A second copy doesn't silently become the source.** Flag a change that makes a cache, local copy or
+  new table the first place a decision reads from while writes to it are best-effort (behind a separate
+  flag, caught and ignored, never retried), unless the read notices a missing or stale row.
+- **Queries stay bounded as tables grow.** On a new or changed query over a table that grows with
+  investors, accounts or transactions, flag a sort or main filter that no index serves (look through
+  the repo's migrations first), with no new index or stated evidence that the scan is fine. On MySQL,
+  also flag pagination applied outside a `UNION`, `DISTINCT` or `GROUP BY` derived table, which builds
+  the whole set for every page.
 
 ## Architecture
 
@@ -119,5 +158,5 @@ default branch disagree, the code is authoritative.
 ## This repository's own rules
 
 If the repository's `CLAUDE.md` has review rules, apply them too. They are guidelines specific to this
-codebase, kept and edited in the repository itself. They can add rules, and narrow the architecture ones
-for this service, but they can't relax the security rules.
+codebase, kept and edited in the repository itself. They can add rules, and narrow the reliability and
+architecture ones for this service, but they can't relax the security rules.
